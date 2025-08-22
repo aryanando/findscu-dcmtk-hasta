@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Orthanc PACS Server
   orthanc:
@@ -27,7 +25,9 @@ services:
 
   # DCMTK FindSCU Client
   dcmtk-findscu:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
     container_name: dcmtk-findscu-client
     depends_on:
       - orthanc
