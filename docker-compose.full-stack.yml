@@ -71,10 +71,64 @@ services:
       timeout: 10s
       retries: 3
 
+  # DCMTK Tools Server
+  dcmtk-tools-server:
+    image: ubuntu:22.04
+    container_name: dcmtk-tools-server
+    ports:
+      - "8000:8000"
+    depends_on:
+      - orthanc
+      - dcmtk-findscu
+    env_file:
+      - .env
+    volumes:
+      - ./tools:/tools
+      - ./config:/config
+      - ./logs:/logs
+      - ./results:/results
+    working_dir: /tools
+    command: >
+      bash -c "
+        export DEBIAN_FRONTEND=noninteractive &&
+        apt-get update &&
+        apt-get install -y dcmtk python3 &&
+        echo 'DCMTK server tools ready' &&
+        cd /results &&
+        python3 -m http.server 8000
+      "
+    environment:
+      - DCMDICTPATH=/usr/share/dcmtk/dicom.dic
+      - DEBIAN_FRONTEND=noninteractive
+      - PACS_HOST=orthanc
+      - PACS_PORT=4242
+    networks:
+      - pacs-network
+    restart: unless-stopped
+
+  # DCMTK Web Interface
+  dcmtk-web-interface:
+    image: nginx:alpine
+    container_name: dcmtk-web-interface
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      - dcmtk-findscu
+      - dcmtk-tools-server
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - pacs-network
+    restart: unless-stopped
+
 volumes:
   orthanc-db:
   orthanc-cache:
   api-logs:
+  dcmtk-tools:
+  dcmtk-results:
+  dcmtk-logs:
 
 networks:
   pacs-network:
