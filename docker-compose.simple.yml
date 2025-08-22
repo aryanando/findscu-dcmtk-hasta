@@ -1,5 +1,5 @@
 services:
-  # Orthanc PACS Server
+  # Simple Orthanc PACS Server (with plugins)
   orthanc:
     image: jodogne/orthanc-plugins:latest
     container_name: orthanc-server
@@ -7,13 +7,14 @@ services:
       - "8042:8042"  # HTTP port
       - "4242:4242"  # DICOM port
     volumes:
-      - ../orthanc-mwl/config/orthanc-minimal.json:/etc/orthanc/orthanc.json:ro
+      - ../orthanc-mwl/config/orthanc-plugins.json:/etc/orthanc/orthanc.json:ro
       - ../orthanc-mwl/worklists:/worklists:ro
       - orthanc-db:/var/lib/orthanc/db
     environment:
-      - ORTHANC_NAME=ORTHANC
-      - VERBOSE_ENABLED=true
-      - WORKLISTS_FOLDER=/worklists
+      - ORTHANC__NAME=ORTHANC
+      - ORTHANC__DICOM_AET=ORTHANC
+      - ORTHANC__DICOM_PORT=4242
+      - ORTHANC__HTTP_PORT=8042
     networks:
       - pacs-network
     restart: unless-stopped
@@ -42,39 +43,8 @@ services:
     restart: unless-stopped
     command: tail -f /dev/null  # Keep container running
 
-  # Hasta Radiologi API (optional - if you want it in same stack)
-  hasta-radiologi-api:
-    build: 
-      context: ../hasta_radiologi
-      dockerfile: Dockerfile
-    container_name: hasta-radiologi-api
-    ports:
-      - "3000:3000"
-    depends_on:
-      - orthanc
-      - dcmtk-findscu
-    environment:
-      - NODE_ENV=production
-      - PACS_HOST=orthanc
-      - PACS_PORT=4242
-      - FINDSCU_CONTAINER=dcmtk-findscu-client
-      - WORKLIST_DIR=/app/worklists
-    volumes:
-      - ../orthanc-mwl/worklists:/app/worklists:ro
-      - api-logs:/app/logs
-    networks:
-      - pacs-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
 volumes:
   orthanc-db:
-  orthanc-cache:
-  api-logs:
 
 networks:
   pacs-network:
