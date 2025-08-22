@@ -1,0 +1,80 @@
+services:
+  dcmtk-findscu:
+    image: ubuntu:22.04
+    container_name: dcmtk-findscu-client
+    networks:
+      - pacs-network
+    volumes:
+      - ./scripts:/scripts
+      - ./queries:/queries
+      - ./results:/results
+      - ./config:/config
+    working_dir: /scripts
+    command: >
+      bash -c "
+        export DEBIAN_FRONTEND=noninteractive &&
+        apt-get update &&
+        apt-get install -y dcmtk &&
+        chmod +x /scripts/*.sh &&
+        echo 'DCMTK tools installed successfully' &&
+        tail -f /dev/null
+      "
+    environment:
+      - PACS_HOST=${PACS_HOST:-localhost}
+      - PACS_PORT=${PACS_PORT:-4242}
+      - LOCAL_AET=${LOCAL_AET:-FINDSCU}
+      - REMOTE_AET=${REMOTE_AET:-ORTHANC}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - DEBIAN_FRONTEND=noninteractive
+    depends_on:
+      - dcmtk-tools
+    restart: unless-stopped
+
+  dcmtk-tools:
+    image: ubuntu:22.04
+    container_name: dcmtk-tools-server
+    networks:
+      - pacs-network
+    volumes:
+      - ./tools:/tools
+      - ./config:/config
+      - ./logs:/logs
+    working_dir: /tools
+    command: >
+      bash -c "
+        export DEBIAN_FRONTEND=noninteractive &&
+        apt-get update &&
+        apt-get install -y dcmtk &&
+        echo 'DCMTK server tools ready' &&
+        tail -f /dev/null
+      "
+    environment:
+      - DCMDICTPATH=/usr/share/dcmtk/dicom.dic
+      - DEBIAN_FRONTEND=noninteractive
+    restart: unless-stopped
+
+  # Optional: Web interface for DCMTK operations
+  dcmtk-web:
+    image: nginx:alpine
+    container_name: dcmtk-web-interface
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    networks:
+      - pacs-network
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+    depends_on:
+      - dcmtk-findscu
+    restart: unless-stopped
+
+networks:
+  pacs-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  dcmtk-scripts:
+  dcmtk-results:
+  dcmtk-logs:
