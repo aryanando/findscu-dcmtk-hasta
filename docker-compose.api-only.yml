@@ -1,0 +1,27 @@
+services:
+  # Hasta Radiologi API Only (for testing)
+  hasta-radiologi-api:
+    build: 
+      context: ../hasta_radiologi
+      dockerfile: Dockerfile
+    container_name: hasta-radiologi-api-test
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PACS_HOST=host.docker.internal  # For connecting to external Orthanc
+      - PACS_PORT=4242
+      - FINDSCU_CONTAINER=dcmtk-findscu-client
+      - WORKLIST_DIR=/app/worklists
+    volumes:
+      - ../orthanc-mwl/worklists:/app/worklists:ro
+      - api-logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  api-logs:

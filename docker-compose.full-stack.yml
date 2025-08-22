@@ -58,16 +58,23 @@ services:
       - PACS_HOST=orthanc
       - PACS_PORT=4242
       - FINDSCU_CONTAINER=dcmtk-findscu-client
+      - WORKLIST_DIR=/app/worklists
     volumes:
-      - ../hasta_radiologi:/app
       - ../orthanc-mwl/worklists:/app/worklists:ro
+      - api-logs:/app/logs
     networks:
       - pacs-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   orthanc-db:
   orthanc-cache:
+  api-logs:
 
 networks:
   pacs-network:
