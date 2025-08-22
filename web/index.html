@@ -1,0 +1,423 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DCMTK FindSCU Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(45deg, #2196F3, #21CBF3);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .service-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            border-left: 5px solid #2196F3;
+            transition: transform 0.3s ease;
+        }
+        
+        .service-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .service-card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+        
+        .service-card p {
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        
+        .service-link {
+            display: inline-block;
+            background: #2196F3;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+        }
+        
+        .service-link:hover {
+            background: #1976D2;
+        }
+        
+        .query-form {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 1px solid #e9ecef;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+        
+        .btn {
+            background: #2196F3;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #1976D2;
+        }
+        
+        .btn-success {
+            background: #4CAF50;
+        }
+        
+        .btn-success:hover {
+            background: #45a049;
+        }
+        
+        .result {
+            background: #e8f5e8;
+            border: 1px solid #c3e6c3;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .loading {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+        
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .status-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .status-online {
+            background: #4CAF50;
+        }
+        
+        .status-offline {
+            background: #f44336;
+        }
+        
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 DCMTK FindSCU Interface</h1>
+            <p>DICOM Modality Worklist and Patient Query Tool</p>
+        </div>
+        
+        <div class="content">
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="status-indicator status-offline" id="orthanc-status"></span>
+                    <strong>Orthanc PACS</strong><br>
+                    <small>Port 8042</small>
+                </div>
+                <div class="status-item">
+                    <span class="status-indicator status-offline" id="api-status"></span>
+                    <strong>API Server</strong><br>
+                    <small>Port 3000</small>
+                </div>
+                <div class="status-item">
+                    <span class="status-indicator status-offline" id="dcmtk-status"></span>
+                    <strong>DCMTK Tools</strong><br>
+                    <small>Port 8000</small>
+                </div>
+            </div>
+            
+            <div class="services-grid">
+                <div class="service-card">
+                    <h3>🏥 Orthanc PACS Server</h3>
+                    <p>Access the Orthanc PACS web interface for DICOM storage and management.</p>
+                    <a href="http://localhost:8042" target="_blank" class="service-link">Open Orthanc</a>
+                </div>
+                
+                <div class="service-card">
+                    <h3>📡 REST API Server</h3>
+                    <p>Hasta Radiologi API for programmatic access to PACS and worklist operations.</p>
+                    <a href="http://localhost:3000/api" target="_blank" class="service-link">API Documentation</a>
+                </div>
+                
+                <div class="service-card">
+                    <h3>🛠️ DCMTK Tools</h3>
+                    <p>Direct access to DCMTK tools and query results via HTTP interface.</p>
+                    <a href="http://localhost:8000" target="_blank" class="service-link">DCMTK Tools</a>
+                </div>
+            </div>
+            
+            <div class="query-form">
+                <h3>🔍 Query Modality Worklist</h3>
+                <button onclick="queryWorklist()" class="btn">Query All Worklists</button>
+                <div id="worklist-results"></div>
+            </div>
+            
+            <div class="query-form">
+                <h3>👤 Patient Query</h3>
+                <div class="form-group">
+                    <label for="patient-name">Patient Name (* for all)</label>
+                    <input type="text" id="patient-name" placeholder="Enter patient name or * for all">
+                </div>
+                <button onclick="queryPatient()" class="btn">Search Patient</button>
+                <div id="patient-results"></div>
+            </div>
+            
+            <div class="query-form">
+                <h3>📋 Study Query</h3>
+                <div class="form-group">
+                    <label for="patient-id">Patient ID</label>
+                    <input type="text" id="patient-id" placeholder="Enter patient ID">
+                </div>
+                <button onclick="queryStudy()" class="btn">Search Studies</button>
+                <div id="study-results"></div>
+            </div>
+            
+            <div class="info">
+                <h3>📋 Available Commands</h3>
+                <p><strong>Query Worklist:</strong> <code>docker-compose exec dcmtk-findscu ./query-worklist.sh</code></p>
+                <p><strong>Query Patient:</strong> <code>docker-compose exec dcmtk-findscu ./query-patient.sh "DOE^JOHN"</code></p>
+                <p><strong>Query Study:</strong> <code>docker-compose exec dcmtk-findscu ./query-study.sh P123456</code></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function checkServiceStatus() {
+            const services = [
+                { id: 'orthanc-status', url: 'http://localhost:8042/system' },
+                { id: 'api-status', url: 'http://localhost:3000/health' },
+                { id: 'dcmtk-status', url: 'http://localhost:8000' }
+            ];
+            
+            for (const service of services) {
+                try {
+                    const response = await fetch(service.url);
+                    const indicator = document.getElementById(service.id);
+                    if (response.ok) {
+                        indicator.className = 'status-indicator status-online';
+                    } else {
+                        indicator.className = 'status-indicator status-offline';
+                    }
+                } catch (error) {
+                    const indicator = document.getElementById(service.id);
+                    indicator.className = 'status-indicator status-offline';
+                }
+            }
+        }
+        
+        async function queryWorklist() {
+            const resultsDiv = document.getElementById('worklist-results');
+            resultsDiv.innerHTML = '<div class="result loading">🔄 Querying modality worklist...</div>';
+            
+            try {
+                const response = await fetch('/api/pacs/worklists');
+                const data = await response.json();
+                
+                if (data.success) {
+                    let html = `<div class="result">
+                        <strong>✅ Found ${data.data.count} worklist entries:</strong><br><br>`;
+                    
+                    data.data.worklists.forEach((wl, index) => {
+                        html += `<strong>${index + 1}. ${wl.patientName}</strong><br>
+                                 Patient ID: ${wl.patientId}<br>
+                                 Accession: ${wl.accessionNumber}<br>
+                                 Modality: ${wl.modality}<br>
+                                 Scheduled: ${wl.scheduledDate} ${wl.scheduledTime}<br><br>`;
+                    });
+                    
+                    html += '</div>';
+                    resultsDiv.innerHTML = html;
+                } else {
+                    resultsDiv.innerHTML = '<div class="result error">❌ Error: ' + data.error + '</div>';
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = '<div class="result error">❌ Connection error: ' + error.message + '</div>';
+            }
+        }
+        
+        async function queryPatient() {
+            const patientName = document.getElementById('patient-name').value || '*';
+            const resultsDiv = document.getElementById('patient-results');
+            resultsDiv.innerHTML = '<div class="result loading">🔄 Searching patients...</div>';
+            
+            try {
+                const response = await fetch(`/api/pacs/patients?name=${encodeURIComponent(patientName)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    let html = `<div class="result">
+                        <strong>✅ Found ${data.data.count} patients:</strong><br><br>`;
+                    
+                    data.data.patients.forEach((patient, index) => {
+                        html += `<strong>${index + 1}. ${patient.patientName || 'N/A'}</strong><br>
+                                 Patient ID: ${patient.patientId || 'N/A'}<br>
+                                 Birth Date: ${patient.patientBirthDate || 'N/A'}<br>
+                                 Sex: ${patient.patientSex || 'N/A'}<br><br>`;
+                    });
+                    
+                    html += '</div>';
+                    resultsDiv.innerHTML = html;
+                } else {
+                    resultsDiv.innerHTML = '<div class="result error">❌ Error: ' + data.error + '</div>';
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = '<div class="result error">❌ Connection error: ' + error.message + '</div>';
+            }
+        }
+        
+        async function queryStudy() {
+            const patientId = document.getElementById('patient-id').value;
+            if (!patientId) {
+                alert('Please enter a Patient ID');
+                return;
+            }
+            
+            const resultsDiv = document.getElementById('study-results');
+            resultsDiv.innerHTML = '<div class="result loading">🔄 Searching studies...</div>';
+            
+            try {
+                const response = await fetch(`/api/pacs/studies/${encodeURIComponent(patientId)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    let html = `<div class="result">
+                        <strong>✅ Found ${data.data.count} studies for patient ${patientId}:</strong><br><br>`;
+                    
+                    data.data.studies.forEach((study, index) => {
+                        html += `<strong>${index + 1}. ${study.studyDescription || 'N/A'}</strong><br>
+                                 Study UID: ${study.studyInstanceUID || 'N/A'}<br>
+                                 Date: ${study.studyDate || 'N/A'}<br>
+                                 Time: ${study.studyTime || 'N/A'}<br>
+                                 Accession: ${study.accessionNumber || 'N/A'}<br><br>`;
+                    });
+                    
+                    html += '</div>';
+                    resultsDiv.innerHTML = html;
+                } else {
+                    resultsDiv.innerHTML = '<div class="result error">❌ Error: ' + data.error + '</div>';
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = '<div class="result error">❌ Connection error: ' + error.message + '</div>';
+            }
+        }
+        
+        // Check service status on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkServiceStatus();
+            
+            // Refresh status every 30 seconds
+            setInterval(checkServiceStatus, 30000);
+        });
+    </script>
+</body>
+</html>
