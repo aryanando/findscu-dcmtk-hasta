@@ -240,19 +240,19 @@
                 <div class="service-card">
                     <h3>🏥 Orthanc PACS Server</h3>
                     <p>Access the Orthanc PACS web interface for DICOM storage and management.</p>
-                    <a href="http://localhost:8042" target="_blank" class="service-link">Open Orthanc</a>
+                    <a href="#" id="orthanc-link" target="_blank" class="service-link">Open Orthanc</a>
                 </div>
                 
                 <div class="service-card">
                     <h3>📡 REST API Server</h3>
                     <p>Hasta Radiologi API for programmatic access to PACS and worklist operations.</p>
-                    <a href="http://localhost:3000/api" target="_blank" class="service-link">API Documentation</a>
+                    <a href="#" id="api-link" target="_blank" class="service-link">API Documentation</a>
                 </div>
                 
                 <div class="service-card">
                     <h3>🛠️ DCMTK Tools</h3>
                     <p>Direct access to DCMTK tools and query results via HTTP interface.</p>
-                    <a href="http://localhost:8000" target="_blank" class="service-link">DCMTK Tools</a>
+                    <a href="#" id="dcmtk-link" target="_blank" class="service-link">DCMTK Tools</a>
                 </div>
             </div>
             
@@ -292,11 +292,34 @@
     </div>
 
     <script>
+        // Get the current host dynamically
+        const currentHost = window.location.hostname;
+        const currentProtocol = window.location.protocol;
+        
+        // Set up dynamic URLs
+        const ORTHANC_URL = `${currentProtocol}//${currentHost}:8042`;
+        const API_URL = `${currentProtocol}//${currentHost}:3000`;
+        const DCMTK_URL = `${currentProtocol}//${currentHost}:8000`;
+        
+        // Initialize dynamic links
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set dynamic service links
+            document.getElementById('orthanc-link').href = ORTHANC_URL;
+            document.getElementById('api-link').href = `${API_URL}/api`;
+            document.getElementById('dcmtk-link').href = DCMTK_URL;
+            
+            // Start service status checking
+            checkServiceStatus();
+            
+            // Refresh status every 30 seconds
+            setInterval(checkServiceStatus, 30000);
+        });
+        
         async function checkServiceStatus() {
             const services = [
-                { id: 'orthanc-status', url: 'http://localhost:8042/system' },
-                { id: 'api-status', url: 'http://localhost:3000/health' },
-                { id: 'dcmtk-status', url: 'http://localhost:8000' }
+                { id: 'orthanc-status', url: `${ORTHANC_URL}/system` },
+                { id: 'api-status', url: `${API_URL}/health` },
+                { id: 'dcmtk-status', url: DCMTK_URL }
             ];
             
             for (const service of services) {
@@ -320,7 +343,7 @@
             resultsDiv.innerHTML = '<div class="result loading">🔄 Querying modality worklist...</div>';
             
             try {
-                const response = await fetch('/api/pacs/worklists');
+                const response = await fetch(`${API_URL}/api/pacs/worklists`);
                 const data = await response.json();
                 
                 if (data.success) {
@@ -351,7 +374,7 @@
             resultsDiv.innerHTML = '<div class="result loading">🔄 Searching patients...</div>';
             
             try {
-                const response = await fetch(`/api/pacs/patients?name=${encodeURIComponent(patientName)}`);
+                const response = await fetch(`${API_URL}/api/pacs/patients?name=${encodeURIComponent(patientName)}`);
                 const data = await response.json();
                 
                 if (data.success) {
@@ -386,7 +409,7 @@
             resultsDiv.innerHTML = '<div class="result loading">🔄 Searching studies...</div>';
             
             try {
-                const response = await fetch(`/api/pacs/studies/${encodeURIComponent(patientId)}`);
+                const response = await fetch(`${API_URL}/api/pacs/studies/${encodeURIComponent(patientId)}`);
                 const data = await response.json();
                 
                 if (data.success) {
@@ -410,14 +433,6 @@
                 resultsDiv.innerHTML = '<div class="result error">❌ Connection error: ' + error.message + '</div>';
             }
         }
-        
-        // Check service status on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            checkServiceStatus();
-            
-            // Refresh status every 30 seconds
-            setInterval(checkServiceStatus, 30000);
-        });
     </script>
 </body>
 </html>
